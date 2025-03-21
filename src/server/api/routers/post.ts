@@ -48,11 +48,12 @@ export const postRouter = createTRPCRouter({
       const { date, isRevert } = input;
       const dateObj = new Date(date);
       const currentDate = new Date();
-      const years = currentDate.getFullYear() - dateObj.getFullYear() - 7;
+      const years = currentDate.getFullYear() - dateObj.getFullYear() - 12;
       const oneDay = 24 * 60 * 60 * 1000; // hours*minutes*seconds*milliseconds
 
       const calculateDays = Math.round(
-        Math.abs((currentDate.getTime() - dateObj.getTime()) / oneDay),
+        Math.abs((currentDate.getTime() - dateObj.getTime()) / oneDay) -
+          12 * 365,
       );
 
       console.log(calculateDays);

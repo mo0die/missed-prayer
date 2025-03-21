@@ -134,7 +134,7 @@ export function YearsForm() {
                 name="date"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
-                    <FormLabel>When did you start praying?</FormLabel>
+                    <FormLabel>Birthdate</FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>

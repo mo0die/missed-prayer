@@ -4,6 +4,9 @@ import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { Calendar as CalendarIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +29,12 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/trpc/react";
 import { PrayerResults } from "@/components/PrayerResults";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 
 interface PrayerResult {
   fajr: {
@@ -87,14 +96,9 @@ const data: PrayerResult = {
   },
 };
 const formSchema = z.object({
-  age: z
-    .string()
-    .refine(
-      (val) => !isNaN(Number(val)) && Number(val) > 0 && Number(val) < 120,
-      {
-        message: "Please enter a valid age between 1 and 120",
-      },
-    ),
+  date: z.date({
+    required_error: "Please select a date",
+  }),
   isRevert: z.boolean().default(false),
 });
 
@@ -103,20 +107,16 @@ export function YearsForm() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      age: "",
       isRevert: false,
     },
   });
 
-  const { data, mutate: getPrayers } = api.post.getMissedPrayers.useMutation({
-    onSuccess: () => {
-      form.reset();
-    },
-  });
+  const getPrayers = api.post.getMissedPrayers.useMutation();
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    getPrayers({
-      age: values.age,
+    getPrayers.mutate({
+      date: values.date.toISOString(),
+      isRevert: values.isRevert,
     });
   }
 
@@ -128,20 +128,52 @@ export function YearsForm() {
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
               <FormField
                 control={form.control}
-                name="age"
+                name="date"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>How old are you?</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="Enter your age"
-                        {...field}
-                      />
-                    </FormControl>
+                  <FormItem className="flex flex-col">
+                    <FormLabel>When did you start praying?</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-[240px] pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground",
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) =>
+                            date > new Date() || date < new Date("1900-01-01")
+                          }
+                          initialFocus
+                          fromYear={1900}
+                          toYear={new Date().getFullYear()}
+                          captionLayout="dropdown-buttons"
+                          className="rounded-md border"
+                          showOutsideDays={false}
+                          fixedWeeks={true}
+                          ISOWeek={true}
+                          weekStartsOn={1}
+                        />
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -154,8 +186,10 @@ export function YearsForm() {
         </CardContent>
       </Card>
 
-      {data && <PrayerResults data={data} isLoading={false} />}
-      {!data && <PrayerResults isLoading={true} />}
+      {getPrayers.data && (
+        <PrayerResults data={getPrayers.data} isLoading={false} />
+      )}
+      {!getPrayers.data && <PrayerResults isLoading={true} />}
     </div>
   );
 }

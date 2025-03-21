@@ -40,15 +40,24 @@ export const postRouter = createTRPCRouter({
   getMissedPrayers: publicProcedure
     .input(
       z.object({
-        age: z.string(),
+        date: z.string(),
+        isRevert: z.boolean(),
       }),
     )
     .mutation(({ input }) => {
-      const { age } = input;
-      const ageNumber = parseInt(age);
-      // get age and get gender, then calculate the missed prayers
+      const { date, isRevert } = input;
+      const dateObj = new Date(date);
+      const currentDate = new Date();
+      const years = currentDate.getFullYear() - dateObj.getFullYear() - 7;
+      const oneDay = 24 * 60 * 60 * 1000; // hours*minutes*seconds*milliseconds
 
-      if (ageNumber < 7) {
+      const calculateDays = Math.round(
+        Math.abs((currentDate.getTime() - dateObj.getTime()) / oneDay),
+      );
+
+      console.log(calculateDays);
+
+      if (years < 7) {
         // return the missed prayers
         return {
           fajr: {
@@ -80,11 +89,8 @@ export const postRouter = createTRPCRouter({
           },
         };
       }
-      if (ageNumber >= 7) {
-        const calculateAge = ageNumber - 7;
-        const calculateDays = calculateAge * 365;
-
-        const missedFasts = calculateAge * 30;
+      if (years >= 7) {
+        const missedFasts = years * 30;
         const missedFajirRakats = calculateDays * 2;
         const missedDuharRakats = calculateDays * 4;
         const missedAsrRakats = calculateDays * 4;
